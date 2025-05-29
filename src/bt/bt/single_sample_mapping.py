@@ -1,25 +1,22 @@
-from ast import arg, main
+from ast import main
 import py_trees
 import py_trees_ros
 import rclpy
-import time
 import typing
 import sys
 import py_trees.console as console
 import py_trees_ros.subscribers as subscribers
 
 from rclpy.node import Node
-from std_msgs.msg import String, Int64
+from std_msgs.msg import String
 from py_trees.behaviours import Failure
 from py_trees.behaviour import Behaviour
 from py_trees.common import Status, Access
 from py_trees import logging
 from py_trees.composites import Sequence, Selector, Parallel
-from utils.analytical_dev_ctrl import Z300Controller
-from utils.bt import AreAllSamplesMeasured
-from utils.gantry_ctrl import OpenBuildsGantryController
 from custom_interfaces.action import TakeMeasurement, MoveGantry, ExportSpectrum, AnalyzeSpectrum
 from rcl_interfaces.msg import ParameterDescriptor
+from py_trees.idioms import pick_up_where_you_left_off
 
 class AreAllSampleMeasured(Behaviour):
     def __init__(self, name: str):
@@ -157,7 +154,7 @@ def create_root():
 
     safety = Failure(name='not safe?')
 
-    measure_one_sample = Sequence('measure one sample', True)
+    # measure_one_sample = Sequence('measure one sample', True)
 
     set_next_goal = SetNextSample('set next goal')
 
@@ -210,13 +207,16 @@ def create_root():
 
     topics_to_bb.add_children([gantry_to_bb, analytical_to_bb])
 
-    tasks.add_children([safety, all_samples_measured, measure_one_sample])
 
-    measure_one_sample.add_children([set_next_goal, wait_for_goal, move, scan_one_point, update_left_samples])
+    # measure_one_sample.add_children([set_next_goal, wait_for_goal, move, scan_one_point, update_left_samples])
 
     move.add_children([move_up, move_xy, move_down])
 
     scan_one_point.add_children([measure, export, analyze])
+
+    measure_one_sample = pick_up_where_you_left_off(name='measure one sample', tasks=[set_next_goal, wait_for_goal, move, scan_one_point, update_left_samples])
+
+    tasks.add_children([safety, all_samples_measured, measure_one_sample])
 
     return root
 
