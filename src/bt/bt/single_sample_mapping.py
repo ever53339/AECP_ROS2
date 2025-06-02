@@ -241,7 +241,7 @@ def main():
     blackboard.register_key('gcode', access=Access.WRITE)
     blackboard.register_key('gantry_command', access=Access.WRITE)
     
-    blackboard.gcode = gen_gcode(x_gap.value, y_gap.value, x_points.value, y_points.value, 10)
+    blackboard.gcode = gen_gcode(x_gap.value, y_gap.value, x_points.value, y_points.value, 10)[:-596]
 
     root = create_root()
 
