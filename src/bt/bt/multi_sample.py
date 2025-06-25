@@ -6,6 +6,7 @@ import typing
 import sys
 import py_trees.console as console
 import py_trees_ros.subscribers as subscribers
+import math
 
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -93,7 +94,7 @@ class UpdateLeftSamples(Behaviour):
 
         return Status.SUCCESS
 
-def gen_gcode(x_interval: float, y_interval: float, x_points: int, y_points: int, z_safe: float) -> list[str]:
+def gen_gcode(x_interval: float, y_interval: float, x_points: int, y_points: int, radius: float) -> list[str]:
     """Generate a gcode script that visits positions on a grid.
     All units are millimeter.
 
@@ -102,7 +103,7 @@ def gen_gcode(x_interval: float, y_interval: float, x_points: int, y_points: int
         y_interval (float): inverval between two adjacent positions on x-scale.
         x_points (int): number of positions on x-scale.
         y_points (int): number of positions on y-scale.
-        z_safe (float): safety distance on z-scale used when traveling between positions.
+        radius (float): radius of the points to visit.
     Returns:
         list[str]: generated gcode script.
     """
@@ -120,7 +121,11 @@ def gen_gcode(x_interval: float, y_interval: float, x_points: int, y_points: int
     for x in x_pos:
         for y in y_pos:
             gcode.append('G17 G21 G90 ' + '\n'
-                         f'G00 X{x} Y{y}' + '\n')
+                         f'G00 X{x} Y{y + radius}' + '\n')
+            gcode.append('G17 G21 G90 ' + '\n'
+                         f'G00 X{x - radius/2} Y{y - math.sqrt(3) * radius / 2}' + '\n')
+            gcode.append('G17 G21 G90 ' + '\n'
+                         f'G00 X{x + radius/2} Y{y - math.sqrt(3) * radius / 2}' + '\n')
     
     return gcode[::-1]
 
@@ -226,22 +231,23 @@ def main():
     rclpy.init(args=None)
     # create a ROS node and declare parameters
     node = Node('behavior_tree')
-    x_gap, y_gap, x_points, y_points = node.declare_parameters(
+    x_gap, y_gap, x_points, y_points, radius = node.declare_parameters(
         namespace='',
-        parameters=[('x_gap', 0.2, ParameterDescriptor(description='The gap in mm between two points in X direction.')),
-                    ('y_gap', 0.2, ParameterDescriptor(description='The gap in mm between two points in Y direction.')),
-                    ('x_points', 51, ParameterDescriptor(description='The number points to be scanned in X direction.')),
-                    ('y_points', 51, ParameterDescriptor(description='The number of points to be scanned in Y direction.'))
+        parameters=[('x_gap', 30, ParameterDescriptor(description='The gap in mm between two points in X direction.')),
+                    ('y_gap', 30, ParameterDescriptor(description='The gap in mm between two points in Y direction.')),
+                    ('x_points', 8, ParameterDescriptor(description='The number points to be scanned in X direction.')),
+                    ('y_points', 4, ParameterDescriptor(description='The number of points to be scanned in Y direction.')),
+                    ('radius', 5, ParameterDescriptor(description='The radius in mm of the sample pellet to be scanned.'))
                     ])
 
-    node.get_logger().info(f'x gap: {x_gap.value}, y gap: {y_gap.value}, x points: {x_points.value}, y points: {y_points.value}')
+    node.get_logger().info(f'x gap: {x_gap.value}, y gap: {y_gap.value}, x points: {x_points.value}, y points: {y_points.value}, radius: {radius.value}')
     blackboard = py_trees.blackboard.Client(name='Global')
     blackboard.register_key('gantry_status', access=Access.READ)
     blackboard.register_key('z300_status', access=Access.READ)
     blackboard.register_key('gcode', access=Access.WRITE)
     blackboard.register_key('gantry_command', access=Access.WRITE)
     
-    blackboard.gcode = gen_gcode(x_gap.value, y_gap.value, x_points.value, y_points.value, 10)
+    blackboard.gcode = gen_gcode(x_gap.value, y_gap.value, x_points.value, y_points.value, radius.value)
 
     root = create_root()
 

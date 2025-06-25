@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
              "single_sample_mapping = bt.single_sample_mapping:main",
+             "multi_sample = bt.multi_sample:main",
         ],
     },
 )
