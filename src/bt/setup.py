@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
              "single_sample_mapping = bt.single_sample_mapping:main",
              "multi_sample = bt.multi_sample:main",
+             "measure_all_samples = bt.measure_all_samples:main",
         ],
     },
 )
