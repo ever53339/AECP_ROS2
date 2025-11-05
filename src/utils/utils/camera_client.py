@@ -41,6 +41,11 @@ class CameraClient():
         data = self.client.call(event='depth_color_img')
         return {'depth': pickle.loads(data['depth']), 'color': pickle.loads(data['color']), 'timestamp': data['timestamp'], 'msg': data['msg']}
 
+    def get_sample_detection(self):
+        """Get sample detection from the server."""
+        data = self.client.call(event='sample_detection')
+        return data
+
     def on_depth_color_img(self, data):
         """Get depth and color image from the server."""
         # self.client.emit('depth_color_img')
