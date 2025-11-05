@@ -1,16 +1,47 @@
 import rclpy
-import rclpy.action
-import rclpy.callback_groups
-import rclpy.parameter
-import time
-import argparse
-import sys
-
+from rclpy.node import Node
 from utils.camera_client import CameraClient
-from custom_interfaces.action import TakeMeasurement
-from std_msgs.msg import String
-from utils.servers import RealServer
+from custom_interfaces.msg import SampleDetectionRes
 
+class SampleDetectionPublisher(Node):
+
+    def __init__(self):
+        super().__init__('sample_detection_pub')
+        self.publisher_ = self.create_publisher(SampleDetectionRes, 'sample_detection', 10)
+        timer_period = 0.1 # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+
+        self.camera_client = CameraClient('http://localhost:7673')
+
+    def timer_callback(self):
+        msg = SampleDetectionRes()
+        res = self.camera_client.get_sample_detection()
+        if res['msg'] == 'success':
+            msg.boxes = res['boxes']
+            msg.ids = res['track_ids']
+            self.publisher_.publish(msg)
+            self.get_logger().info(f'Publishing sample detection results.')
+        else:
+            self.get_logger().error(f'Failed to get sample detection: {res["msg"]}')
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    sample_detection_publisher = SampleDetectionPublisher()
+
+    rclpy.spin(sample_detection_publisher)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    sample_detection_publisher.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+
+'''
 class CameraActionServer(RealServer):
     """
     Camera action server for vision tasks.
@@ -33,7 +64,7 @@ class CameraActionServer(RealServer):
         self.camera_client = CameraClient('http://localhost:7673')
 
         # In addition to the action server, create a publisher publishing the device status continuously
-        self._publisher = self.node.create_publisher(msg_type=String, topic='z300_status', qos_profile=10)
+        self._publisher = self.node.create_publisher(msg_type=String, topic='sample_detection', qos_profile=10)
         
         self.timer = self.node.create_timer(timer_period_sec=0.5, callback=self.timer_callback)
 
@@ -155,3 +186,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+'''
