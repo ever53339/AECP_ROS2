@@ -143,6 +143,8 @@ class CameraClient():
         # self.client.on('status', self.on_status)        
 
         self.client.connect(ip_port)
+
+        self.calibrate_gantry()
     
     def on_connect(self) -> None:
         print('Connectted to Realsense-d455 server. SSID: {self.client.sid}.')
@@ -204,7 +206,8 @@ class CameraClient():
             x_board, y_board, z_board = self.convert_pixel_to_board(corners[i][0][0], corners[i][0][1], depth, intrinsics)
             x_error.append(x_board - i % chessboard_size[0] * square_size)
             y_error.append(y_board - i // chessboard_size[0] * square_size)
-            z_error.append(z_board - 0)
+            if z_board > 0:
+                z_error.append(z_board - 0)
 
         print(f"x_error: {np.mean(x_error)}, {np.std(x_error)}")
         print(f"y_error: {np.mean(y_error)}, {np.std(y_error)}")
@@ -231,7 +234,7 @@ class CameraClient():
         x_b, y_b, z_b = self.convert_pixel_to_board(x, y, depth, intrinsics)
         x_b, y_b, z_b = x_b - self.x_error, y_b - self.y_error, z_b - self.z_error
 
-        x_g, y_g, z_g = x_b, y_b, z_b
+        x_g, y_g, z_g = x_b, -y_b, z_b
         return x_g, y_g, z_g  
 
 if __name__ == "__main__":
