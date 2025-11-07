@@ -12,6 +12,7 @@ class SampleDetectionPublisher(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         self.camera_client = CameraClient('http://localhost:7673')
+        self.camera_client.calibrate_gantry()
 
     def timer_callback(self):
         msg = SampleDetectionRes()
@@ -19,6 +20,12 @@ class SampleDetectionPublisher(Node):
         if res['msg'] == 'success':
             msg.boxes = res['boxes']
             msg.ids = res['track_ids']
+
+            gantry_locs = []
+            for x, y, _, _ in res['boxes']:
+                x_g, y_g, z_g = self.camera_client.convert_pixel_to_gantry(x, y)
+                gantry_locs.append((x_g, y_g, z_g))
+            msg.gantry_locs = gantry_locs
             self.publisher_.publish(msg)
             self.get_logger().info(f'Publishing sample detection results.')
         else:

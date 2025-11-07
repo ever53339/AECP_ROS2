@@ -19,12 +19,11 @@ from custom_interfaces.msg import SampleDetectionRes
 from rcl_interfaces.msg import ParameterDescriptor
 from py_trees.idioms import pick_up_where_you_left_off
 
-def get_gcode_from_pixel_coordinates(x: float, y: float) -> str:
+def get_gcode_from_pixel_coordinates(x: float, y: float, z: float) -> str:
     """Generate a gcode script that visits a single position.
     All units are millimeter.
     """
-    x0, y0 = x, y # todo: transform xy to x0, y0
-    return f'G17 G21 G90 \n G00 X{x0} Y{y0} \n'
+    return f'G17 G21 G90 \n G00 X{x*1000:.0f} Y{y*1000:.0f} Z{z*1000:.0f}\n'
 
 class AreAllSampleMeasured(Behaviour):
     def __init__(self, name: str):
@@ -62,7 +61,7 @@ class SetNextSample(Behaviour):
         self.bb = self.attach_blackboard_client(name="set next sample")
         # self.bb.register_key('gcode', access=Access.WRITE)
         self.bb.register_key('gantry_command', access=Access.WRITE)
-        self.bb.register_key('boxes', access=Access.READ)
+        self.bb.register_key('gantry_locs', access=Access.READ)
         self.bb.register_key('next_sample_index', access=Access.READ)
 
     def setup(self, **kwargs: typing.Any) -> None:
@@ -79,8 +78,8 @@ class SetNextSample(Behaviour):
         
         goal = MoveGantry.Goal()
         # goal.cmd = self.bb.gcode.pop()
-        x, y, _, _ = self.bb.boxes[self.bb.next_sample_index]
-        goal.cmd = get_gcode_from_pixel_coordinates(x, y)
+        x_g, y_g, z_g = self.bb.gantry_locs[self.bb.next_sample_index]
+        goal.cmd = get_gcode_from_pixel_coordinates(x_g, y_g, z_g)
         self.bb.set(name='gantry_command', value=goal)
 
         return Status.SUCCESS
@@ -173,7 +172,7 @@ def create_root():
     camera_to_bb = subscribers.ToBlackboard(name='camera_to_bb', 
                                                 topic_name='sample_detection',
                                                 topic_type=SampleDetectionRes,
-                                                blackboard_variables={'boxes': 'boxes', 'ids': 'ids'},
+                                                blackboard_variables={'boxes': 'boxes', 'ids': 'ids', 'gantry_locs': 'gantry_locs'},
                                                 qos_profile=py_trees_ros.utilities.qos_profile_unlatched()
                                                 )
 
@@ -269,6 +268,7 @@ def main():
     blackboard.register_key('z300_status', access=Access.READ)
     blackboard.register_key('boxes', access=Access.READ)
     blackboard.register_key('ids', access=Access.READ)
+    blackboard.register_key('gantry_locs', access=Access.READ)
     blackboard.register_key('measured_ids', access=Access.WRITE)
     # blackboard.register_key('gcode', access=Access.WRITE)
     blackboard.register_key('next_sample_index', access=Access.WRITE)
