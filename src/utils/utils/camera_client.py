@@ -151,6 +151,8 @@ class CameraClient():
         self.y_error = data['y_error']
         self.z_error = data['z_error']
 
+        self.detection_res = {'boxes': [], 'ids': [], 'gantry_locs': [], 'msg': ''}
+
     def on_connect(self) -> None:
         print('Connectted to Realsense-d455 server. SSID: {self.client.sid}.')
     
@@ -172,8 +174,26 @@ class CameraClient():
 
     def get_sample_detection(self):
         """Get sample detection from the server."""
-        data = self.client.call(event='sample_detection')
-        return data
+        # data = self.client.call(event='sample_detection')
+        self.detection_res['boxes'] = []
+        self.detection_res['ids'] = []
+        self.detection_res['gantry_locs'] = []
+        self.detection_res['msg'] = ''
+        
+        self.client.emit('sample_detection', 'data', callback=self.on_sample_detection)
+
+    def on_sample_detection(self, res):
+        """Get sample detection from the server."""
+        self.detection_res['boxes'] = res['boxes']
+        self.detection_res['ids'] = res['track_ids']
+        self.detection_res['msg'] = res['msg']
+
+        gantry_locs = []
+        for x, y, w, h in res['boxes']:
+            x_g, y_g, z_g = self.convert_pixel_to_gantry(x, y)
+            gantry_locs.append([x_g, y_g, z_g])
+
+        self.detection_res['gantry_locs'] = gantry_locs
 
     def on_depth_color_img(self, data):
         """Get depth and color image from the server."""
