@@ -25,8 +25,8 @@ def pixel_to_camera_frame(x: float, y: float, depth_image: np.ndarray, camera_in
 
     # Get the depth value at the given pixel
     # Bilinear interpolation of depth at (y, x)
-    x0, x1 = int(np.floor(x)), int(np.ceil(x))
-    y0, y1 = int(np.floor(y)), int(np.ceil(y))
+    x0, x1 = int(np.floor(x)), int(np.floor(x + 1))
+    y0, y1 = int(np.floor(y)), int(np.floor(y + 1))
 
     # Clip indices to image boundaries
     # h, w = depth_image.shape
@@ -144,8 +144,13 @@ class CameraClient():
 
         self.client.connect(ip_port)
 
-        self.calibrate_gantry()
-    
+        data = self.client.call(event='calibration_results')
+        self.rotation = pickle.loads(data['r_board_to_camera'])
+        self.translation = pickle.loads(data['t_board_to_camera'])
+        self.x_error = data['x_error']
+        self.y_error = data['y_error']
+        self.z_error = data['z_error']
+
     def on_connect(self) -> None:
         print('Connectted to Realsense-d455 server. SSID: {self.client.sid}.')
     
@@ -184,38 +189,6 @@ class CameraClient():
         # print(self.time_receive)
         self.delay_ms = (self.time_receive - self.timestamp_view) * 1000
         # print(f'delay: {(self.time_receive - self.timestamp_view):4f} s' )
-    
-    def calibrate_gantry(self, chessboard_size: tuple[int, int] = (8, 6), square_size: float = 0.04) -> None:
-        # camera = CameraClient('http://localhost:7627')
-        intrinsics = self.get_camera_intrinsics()
-        image_depth = self.get_depth_color_img()
-        image = image_depth['color']
-        depth = image_depth['depth']
-
-        # Find chessboard corners
-        corners = find_chessboard_corners(image, chessboard_size)
-        # Compute transformation from chessboard to camera
-        rvec, tvec = compute_board_to_camera(corners, chessboard_size, square_size, intrinsics)
-        self.rotation = cv2.Rodrigues(rvec)[0]
-        self.translation = np.reshape(tvec, (3, 1))
-
-        x_error = []
-        y_error = []
-        z_error = []
-        for i in range(corners.shape[0]):
-            x_board, y_board, z_board = self.convert_pixel_to_board(corners[i][0][0], corners[i][0][1], depth, intrinsics)
-            x_error.append(x_board - i % chessboard_size[0] * square_size)
-            y_error.append(y_board - i // chessboard_size[0] * square_size)
-            if z_board > 0:
-                z_error.append(z_board - 0)
-
-        print(f"x_error: {np.mean(x_error)}, {np.std(x_error)}")
-        print(f"y_error: {np.mean(y_error)}, {np.std(y_error)}")
-        print(f"z_error: {np.mean(z_error)}, {np.std(z_error)}")
-
-        self.x_error = np.mean(x_error)
-        self.y_error = np.mean(y_error)
-        self.z_error = np.mean(z_error)
 
     def convert_pixel_to_board(self, x: float, y: float, depth_image: np.ndarray, camera_intrinsics: dict) -> tuple[float, float, float]:
         x_c, y_c, z_c = pixel_to_camera_frame(x, y, depth_image, camera_intrinsics)
