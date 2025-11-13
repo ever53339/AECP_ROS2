@@ -180,7 +180,7 @@ class CameraClient():
         self.detection_res['gantry_locs'] = []
         self.detection_res['msg'] = ''
         
-        self.client.emit('sample_detection', 'data', callback=self.on_sample_detection)
+        self.client.emit('sample_detection', callback=self.on_sample_detection)
 
     def on_sample_detection(self, res):
         """Get sample detection from the server."""
