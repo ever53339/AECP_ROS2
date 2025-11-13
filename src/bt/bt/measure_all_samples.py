@@ -26,6 +26,25 @@ def get_gcode_from_pixel_coordinates(x: float, y: float) -> str:
     """
     return f'G17 G21 G90 \n G00 X{x*1000:.0f} Y{y*1000:.0f} \n'
 
+def outside_working_area(gantry_loc, x_l = -0.2, x_h=0.25, y_l=-0.185, y_h=0.02, z_l=-0.006, z_h=0.040) -> bool:
+    """Check whether the gantry location is outside the working area.
+
+    Args:
+        gantry_loc: gantry location with x_g, y_g, z_g attributes in meter.
+        x_l: lower x limit in meter.
+        x_h: upper x limit in meter.
+        y_l: lower y limit in meter.
+        y_h: upper y limit in meter.
+        z_l: lower z limit in meter.
+        z_h: upper z limit in meter.
+
+    Returns:
+        bool: True if outside the working area, False otherwise.
+    """
+
+    return not (x_l < gantry_loc.x_g < x_h and \
+           y_l < gantry_loc.y_g < y_h and \
+           z_l < gantry_loc.z_g < z_h)
 
 # class DetectSampleActionClient(py_trees_ros.action_clients.FromConstant):
 #     def __init__(self, name: str):
@@ -106,6 +125,9 @@ class AreAllSampleMeasured(Behaviour):
             ids, gantry_locs = self.result_value.ids, self.result_value.gantry_locs
 
             for ids, gantry_loc in zip(ids, gantry_locs):
+                if outside_working_area(gantry_loc):
+                    continue
+                
                 if ids not in self.bb.measured_ids:
                     self.bb.set(name='next_sample_id', value=ids)
                     self.bb.set(name='next_sample_loc', value=gantry_loc)
@@ -271,7 +293,7 @@ def create_root():
     move_aside = py_trees_ros.action_clients.FromConstant(name='move_aside',
                                                       action_type=MoveGantry,
                                                       action_name='move_gantry',
-                                                      action_goal=MoveGantry.Goal(cmd='G17 G21 G90 \n G00 Z40 \n G00 X0 Y200 \n'), # todo: set outside location
+                                                      action_goal=MoveGantry.Goal(cmd='G17 G21 G90 \n G00 Z40 \n G00 X357 Y19 \n'), 
                                                       )
 
     detect_samples = py_trees_ros.action_clients.FromConstant(name='detect_samples',
@@ -343,7 +365,7 @@ def create_root():
                                                       action_name='analyze_spectrum',
                                                       action_goal=AnalyzeSpectrum.Goal())
     
-    # update_left_samples = UpdateLeftSamples('update left samples')
+    update_left_samples = UpdateLeftSamples('update left samples')
 
     root.add_children([topics_to_bb, main_branch])
 
@@ -358,7 +380,7 @@ def create_root():
 
     scan_one_point.add_children([measure, export, analyze])
 
-    measure_one_sample = pick_up_where_you_left_off(name='measure one sample', tasks=[set_next_goal, wait_for_goal, move, scan_one_point])
+    measure_one_sample = pick_up_where_you_left_off(name='measure one sample', tasks=[set_next_goal, wait_for_goal, move, scan_one_point, update_left_samples])
 
     tasks.add_children([safety, all_samples_measured, measure_one_sample])
 
@@ -418,7 +440,7 @@ def main():
         rclpy.try_shutdown()
         sys.exit(1)
 
-    tree.tick_tock(500)
+    tree.tick_tock(1000)
 
 
     try:
