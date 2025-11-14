@@ -137,12 +137,10 @@ class AreAllSampleMeasured(Behaviour):
             self.bb.set(name='next_sample_loc', value=None)
             return py_trees.common.Status.SUCCESS
         
-        elif self.detect_behavior.status == py_trees.common.Status.FAILURE:
+        else:
             self.feedback_message = "Action failed"
             return py_trees.common.Status.FAILURE
-        else:
-            # Still running or not started yet
-            return py_trees.common.Status.RUNNING
+        
         
         '--------------------------------------------------'
         # for i, id in enumerate(self.bb.ids):
