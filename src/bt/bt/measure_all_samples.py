@@ -286,7 +286,7 @@ def create_root():
     #                                             qos_profile=py_trees_ros.utilities.qos_profile_unlatched()
     #                                             )
 
-    main_branch = Sequence(name='main branch', memory=True)
+    # main_branch = Sequence(name='main branch', memory=True)
 
     tasks = Selector(name='main task', memory=False)
     
@@ -367,9 +367,11 @@ def create_root():
     
     update_left_samples = UpdateLeftSamples('update left samples')
 
+    main_branch = pick_up_where_you_left_off(name='main branch', tasks=[move_aside, detect_samples, tasks])
+
     root.add_children([topics_to_bb, main_branch])
 
-    main_branch.add_children([move_aside, detect_samples, tasks])
+    # main_branch.add_children([move_aside, detect_samples, tasks])
 
     topics_to_bb.add_children([gantry_to_bb, analytical_to_bb])
 
