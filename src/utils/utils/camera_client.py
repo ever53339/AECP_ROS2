@@ -140,6 +140,7 @@ class CameraClient():
         self.client.on('disconnect', self.on_disconnect)
         self.client.on('broadcast_img', self.on_depth_color_img)
         self.color_view, self.depth_view, self.timestamp_view = None, None, time.time()
+        self.delay_ms = 0
         # self.client.on('status', self.on_status)        
 
         self.client.connect(ip_port)
@@ -202,8 +203,20 @@ class CameraClient():
         # self.data = data
         # d = pickle.loads(data)
         d = data
-        self.color_view, self.depth_view, self.timestamp_view = pickle.loads(d['color']), pickle.loads(d['depth']), d['timestamp']
+        # self.color_view, self.depth_view, self.timestamp_view = pickle.loads(d['color']), pickle.loads(d['depth']), d['timestamp']
         # self.color_view = pickle.loads
+        # Decode color image buffer from pickled bytes, then imdecode
+        color_buf = d['color']  # bytes representing PNG/JPG buffer
+        self.color_view = np.frombuffer(color_buf, dtype=np.uint8)
+
+
+        # Decode depth image buffer from pickled bytes, then imdecode
+        depth_buf = d['depth']
+        self.depth_view = np.frombuffer(depth_buf, dtype=np.uint8)
+        # self.depth_view = depth_buf
+
+        self.timestamp_view = d['timestamp']
+        
         self.time_receive = time.time()
         # print(self.timestamp_view)
         # print(self.time_receive)
