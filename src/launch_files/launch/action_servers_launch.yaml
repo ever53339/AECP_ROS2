@@ -7,5 +7,20 @@ launch:
 
 - node:
     pkg: "measurement"
-    exec: "z300_controller"
-    name: "z300_controller"
+    exec: "z300_measure_asvr"
+    name: "z300_measure_asvr"
+
+- node:
+    pkg: "measurement"
+    exec: "z300_export_asvr"
+    name: "z300_export_asvr"
+
+- node:
+    pkg: "measurement"
+    exec: "z300_analyze_asvr"
+    name: "z300_analyze_asvr"
+
+- node:
+    pkg: "camera"
+    exec: "camera_asvr"
+    name: "camera_asvr"

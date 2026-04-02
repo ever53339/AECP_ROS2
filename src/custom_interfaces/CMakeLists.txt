@@ -27,6 +27,9 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GantryStatus.msg"
+  "msg/BoundingBox.msg"
+  "msg/SampleDetectionRes.msg"
+  "msg/GantryLocation.msg"
   "srv/MoveGantry.srv"
   "srv/IsRdy.srv"
   "action/TakeMeasurement.action"
@@ -35,6 +38,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetZero.srv"
   "action/AnalyzeSpectrum.action"
   "action/ExportSpectrum.action"
+  "action/DetectSamples.action"
 )
 
 ament_package()

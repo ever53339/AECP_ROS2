@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'bt'
+package_name = 'camera'
 
 setup(
     name=package_name,
@@ -13,16 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='xcao',
+    maintainer='wsl_dell327j',
     maintainer_email='caoxuan8872@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-             "single_sample_mapping = bt.single_sample_mapping:main",
-             "multi_sample = bt.multi_sample:main",
-             "measure_all_samples = bt.measure_all_samples:main",
+            'camera_asvr = camera.camera_asvr:main',
         ],
     },
 )
